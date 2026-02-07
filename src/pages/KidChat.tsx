@@ -21,20 +21,7 @@ const topicSuggestions = [
   { label: "Why is math important?", icon: Calculator, color: "bg-kidzie-yellow/10 text-kidzie-yellow hover:bg-kidzie-yellow/20" },
 ];
 
-const mockResponses: Record<string, string> = {
-  "Why is the sky blue?":
-    "Great question! 🌤️ Imagine sunlight is like a bag of colorful LEGO bricks — red, orange, yellow, green, blue, and violet! When sunlight enters our atmosphere, the tiny air molecules scatter the blue bricks way more than the others because blue light waves are shorter and bouncier. So when you look up, you see blue scattered everywhere! It's like the sky is playing catch with just the blue LEGOs! 💙",
-  "How do volcanoes work?":
-    "Volcanoes are like Earth's pressure valves! 🌋 Deep underground, it's SO hot that rocks actually melt into a gooey liquid called magma. Think of it like a giant pot of tomato soup bubbling on the stove. When too much pressure builds up, the magma pushes up through cracks in the Earth and — BOOM! — it erupts out the top as lava! The Earth is basically sneezing out hot rock! 🤧🔥",
-  "Tell me about dinosaurs!":
-    "Dinosaurs are SO cool! 🦕 They lived on Earth for about 165 million years — that's WAY longer than humans have been around! Some were as tall as a 4-story building (like Brachiosaurus), and some were as small as a chicken (like Compsognathus). The T-Rex had teeth as big as bananas! 🍌 They went extinct about 66 million years ago when a giant asteroid hit Earth. Scientists learn about them by studying fossils — old bones turned to rock!",
-  "How does the internet work?":
-    "The internet is like a super-fast mail system! 📬 When you watch a video, your computer sends a tiny letter saying 'I want this video please!' That letter zooms through wires (even under the ocean! 🌊) to a big computer called a server. The server breaks the video into tiny puzzle pieces called 'packets' and sends them back. Your computer puts the puzzle back together super fast — and boom, you see the video! It's like magic, but it's really science! ✨",
-  "What is a rainbow?":
-    "A rainbow is nature's art show! 🌈 When sunlight hits raindrops in the air, something amazing happens. Each raindrop works like a tiny prism — it bends the light and splits it into all its hidden colors! Red, orange, yellow, green, blue, and violet all fan out across the sky. You always see rainbows when the sun is behind you and rain is in front of you. Double rainbows happen when light bounces twice inside the raindrops! 🎨",
-  "Why is math important?":
-    "Math is like a superpower! 🦸 It's everywhere, even when you don't notice it. When you share pizza equally with friends — that's math! 🍕 When you save up allowance for a toy — that's math! When video games calculate if your character hits the target — math! Even music uses math patterns! Scientists use math to build rockets 🚀, doctors use it to figure out medicine doses, and game designers use it to create your favorite games. Math helps you solve puzzles and think clearly about everything! 🧠",
-};
+const API_URL = "http://localhost:8000/chat"; // FastAPI backend
 
 const KidChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,7 +37,7 @@ const KidChat = () => {
 
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
-    if (!messageText) return;
+    if (!messageText || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -63,22 +50,41 @@ const KidChat = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI response (will be replaced with real Gemini API)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: messageText,
+          age: childAge,
+        }),
+      });
 
-    const responseText =
-      mockResponses[messageText] ||
-      `That's a fantastic question! 🌟 Let me think about "${messageText}"... Since you're ${childAge} years old, I'll explain it in a way that's perfect for you! This is a mock response — once we connect the AI backend, KidZie will give you a real, personalized answer! 🤖✨`;
+      if (!res.ok) throw new Error("Backend error");
 
-    const botMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: responseText,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
+      const data = await res.json();
 
-    setMessages((prev) => [...prev, botMessage]);
-    setIsTyping(false);
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.response,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Oops! I couldn't reach my brain 🧠⚡ Try again!",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -136,7 +142,6 @@ const KidChat = () => {
                 Ask me anything about science, history, math, or nature! I'll explain it in a way that's perfect for you.
               </p>
 
-              {/* Topic suggestions */}
               <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                 {topicSuggestions.map((topic) => {
                   const Icon = topic.icon;
@@ -161,37 +166,11 @@ const KidChat = () => {
             <ChatMessage key={msg.id} role={msg.role} content={msg.content} timestamp={msg.timestamp} />
           ))}
 
-          {/* Typing indicator */}
           <AnimatePresence>
             {isTyping && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center gap-3"
-              >
-                <div className="w-9 h-9 rounded-full bg-kidzie-teal/20 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-kidzie-teal animate-pulse" />
-                </div>
-                <div className="bg-card shadow-soft px-4 py-3 rounded-bubble rounded-tl-md">
-                  <div className="flex gap-1.5">
-                    <motion.div
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                      className="w-2 h-2 bg-kidzie-teal rounded-full"
-                    />
-                    <motion.div
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                      className="w-2 h-2 bg-kidzie-coral rounded-full"
-                    />
-                    <motion.div
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                      className="w-2 h-2 bg-kidzie-yellow rounded-full"
-                    />
-                  </div>
-                </div>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-kidzie-teal animate-pulse" />
+                <span className="text-sm text-muted-foreground">KidZie is thinking...</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -199,18 +178,10 @@ const KidChat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
+        {/* Input */}
         <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
           <div className="flex items-center gap-2 bg-card rounded-full shadow-card px-4 py-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full text-kidzie-purple hover:bg-kidzie-purple/10 flex-shrink-0"
-              onClick={() => {
-                // Image upload placeholder
-                alert("📸 Image upload will be connected to the AI backend soon!");
-              }}
-            >
+            <Button size="icon" variant="ghost" className="rounded-full text-kidzie-purple">
               <Camera className="w-5 h-5" />
             </Button>
 
@@ -221,14 +192,14 @@ const KidChat = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything! 🌟"
-              className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent border-none outline-none text-sm font-medium"
             />
 
             <Button
               size="icon"
               onClick={() => handleSend()}
               disabled={!input.trim() || isTyping}
-              className="rounded-full gradient-hero text-primary-foreground shadow-glow-teal flex-shrink-0 disabled:opacity-40"
+              className="rounded-full gradient-hero text-primary-foreground shadow-glow-teal"
             >
               <Send className="w-4 h-4" />
             </Button>
