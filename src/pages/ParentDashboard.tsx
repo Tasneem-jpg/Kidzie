@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/firebaseConfig"; // adjust the path if needed
 import { useEffect, useState } from "react";
 // import { useState } from "react";
@@ -30,9 +30,7 @@ import {
 import Header from "@/components/Header";
 import TopicBadge from "@/components/TopicBadge";
 
-
 // Mock data
-
 
 const topicData = [
   { name: "Physics", value: 35, color: "hsl(175, 75%, 38%)" },
@@ -95,13 +93,21 @@ const ParentDashboard = () => {
         const q = query(
           collection(db, "activityLogs"),
           where("childId", "==", childId),
-          orderBy("timestamp", "desc"),
         );
+
         const snapshot = await getDocs(q);
+
         const logs = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+
+        // ✅ SORT HERE (THIS IS THE IMPORTANT PART)
+        logs.sort(
+          (a: any, b: any) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
+
         setActivityLogs(logs);
       } catch (err) {
         console.error("Error fetching activity logs:", err);
@@ -110,8 +116,6 @@ const ParentDashboard = () => {
 
     fetchActivityLogs();
   }, []);
-
-  
 
   return (
     <div className="min-h-screen bg-background">
@@ -386,6 +390,5 @@ const ParentDashboard = () => {
     </div>
   );
 };
-
 
 export default ParentDashboard;
