@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Copy, Check, Sparkles, RefreshCw, Clock } from "lucide-react";
+import { Calendar, Copy, Check, Sparkles, RefreshCw, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ interface ScheduleItem {
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const mockSchedule: Record<string, ScheduleItem[]> = {
+const initialMockSchedule: Record<string, ScheduleItem[]> = {
   Monday: [
     { time: "4:00 PM", subject: "Math", topic: "Fractions Practice", duration: "25 min", color: "bg-kidzie-coral" },
     { time: "4:30 PM", subject: "Science", topic: "How Plants Grow", duration: "20 min", color: "bg-kidzie-green" },
@@ -54,10 +54,38 @@ const mockSchedule: Record<string, ScheduleItem[]> = {
 const ScheduleGenerator = () => {
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [schedule, setSchedule] = useState<Record<string, ScheduleItem[]>>(initialMockSchedule);
+
+  const handleRegenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch("http://localhost:8000/generate-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          age: 8, // This could come from your user settings
+          subjects: ["Math", "Science", "Creative Arts", "Reading"],
+          goals: "Keep it fun and interactive with short breaks"
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to reach backend");
+      
+      const newSchedule = await response.json();
+      setSchedule(newSchedule);
+      toast.success("AI has created a new custom schedule! ✨");
+    } catch (error) {
+      console.error(error);
+      toast.error("I couldn't talk to the AI right now. Using existing schedule! 🤖");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleCopyToCalendar = () => {
-    const schedule = mockSchedule[selectedDay];
-    const calendarText = schedule
+    const currentDaySchedule = schedule[selectedDay];
+    const calendarText = currentDaySchedule
       .map((item) => `${item.time} - ${item.subject}: ${item.topic} (${item.duration})`)
       .join("\n");
 
@@ -70,9 +98,10 @@ const ScheduleGenerator = () => {
   };
 
   const handleCopyGoogleCalendarLink = () => {
-    const schedule = mockSchedule[selectedDay];
-    // Create a Google Calendar event URL for the first item as example
-    const item = schedule[0];
+    const currentDaySchedule = schedule[selectedDay];
+    if (currentDaySchedule.length === 0) return;
+
+    const item = currentDaySchedule[0];
     const title = encodeURIComponent(`${item.subject}: ${item.topic}`);
     const details = encodeURIComponent(`KidZie AI Study Session\n\nTopic: ${item.topic}\nDuration: ${item.duration}`);
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}`;
@@ -123,7 +152,7 @@ const ScheduleGenerator = () => {
 
         {/* Schedule items */}
         <div className="space-y-4 mb-8">
-          {mockSchedule[selectedDay].map((item, i) => (
+          {schedule[selectedDay]?.map((item, i) => (
             <motion.div
               key={`${selectedDay}-${i}`}
               initial={{ opacity: 0, x: -20 }}
@@ -131,7 +160,6 @@ const ScheduleGenerator = () => {
               transition={{ delay: 0.15 + i * 0.08 }}
               className="bg-card rounded-2xl p-5 shadow-card flex items-center gap-4 hover:shadow-elevated transition-shadow"
             >
-              {/* Time */}
               <div className="text-center min-w-[70px]">
                 <p className="text-sm font-bold text-foreground">{item.time}</p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center mt-1">
@@ -140,16 +168,13 @@ const ScheduleGenerator = () => {
                 </p>
               </div>
 
-              {/* Divider */}
               <div className={`w-1 h-12 rounded-full ${item.color}`} />
 
-              {/* Content */}
               <div className="flex-1">
                 <p className="font-bold text-sm">{item.subject}</p>
                 <p className="text-sm text-muted-foreground">{item.topic}</p>
               </div>
 
-              {/* Subject badge */}
               <div className={`${item.color} text-primary-foreground px-3 py-1 rounded-full text-xs font-bold`}>
                 {item.subject}
               </div>
@@ -166,6 +191,7 @@ const ScheduleGenerator = () => {
         >
           <Button
             onClick={handleCopyToCalendar}
+            disabled={isGenerating}
             className="gradient-hero text-primary-foreground rounded-full font-bold shadow-glow-teal px-6"
           >
             {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
@@ -175,6 +201,7 @@ const ScheduleGenerator = () => {
           <Button
             onClick={handleCopyGoogleCalendarLink}
             variant="outline"
+            disabled={isGenerating}
             className="rounded-full font-bold px-6"
           >
             <Calendar className="w-4 h-4 mr-2" />
@@ -184,10 +211,15 @@ const ScheduleGenerator = () => {
           <Button
             variant="outline"
             className="rounded-full font-bold px-6"
-            onClick={() => toast.info("Schedule regeneration will use AI when backend is connected! 🤖")}
+            onClick={handleRegenerate}
+            disabled={isGenerating}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Regenerate
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            {isGenerating ? "Generating..." : "Regenerate with AI"}
           </Button>
         </motion.div>
 
@@ -205,7 +237,7 @@ const ScheduleGenerator = () => {
               <p className="text-sm text-muted-foreground mt-1">
                 KidZie AI analyzes your child's learning patterns, weak points, and interests to create 
                 a personalized study schedule. Sessions are kept short (15-30 min) to match children's 
-                attention spans. Once connected to the backend, schedules will update automatically!
+                attention spans. Hit "Regenerate" to see the AI magic in action!
               </p>
             </div>
           </div>
