@@ -1,5 +1,5 @@
 // src/firebaseConfig.ts
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 // Your Firebase configuration
@@ -12,8 +12,8 @@ const firebaseConfig = {
   appId: "1:230843656135:web:71a788abe54bd17e29dbe2",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase (reuse existing app if present)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize Firestore
 export const db = getFirestore(app);
