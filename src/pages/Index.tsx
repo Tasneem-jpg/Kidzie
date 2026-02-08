@@ -131,14 +131,6 @@ const Index = () => {
                   alt="Colorful learning elements — books, planets, science icons"
                   className="w-full rounded-3xl shadow-elevated"
                 />
-                {/* Floating KidZie avatar */}
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -bottom-8 -left-4 w-24 h-24 rounded-2xl overflow-hidden shadow-elevated border-4 border-card"
-                >
-                  <img src={kidzieAvatar} alt="KidZie mascot" className="w-full h-full object-cover" />
-                </motion.div>
               </div>
             </motion.div>
           </div>
