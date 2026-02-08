@@ -31,8 +31,8 @@ const features = [
   },
   {
     icon: Camera,
-    title: "Snap & Learn",
-    description: "Take a photo of anything — a bug, a plant, homework — and get a kid-friendly explanation instantly!",
+    title: "Text to Speech & Speech to Text",
+    description: "Speak to the app or listen to answers read out loud — perfect for learning hands-free!",
     color: "purple" as const,
   },
   {
