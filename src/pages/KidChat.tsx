@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Camera, Sparkles, Lightbulb, Atom, Globe, TreePine, Palette, Calculator, Mic, Volume2, Pause, Play } from "lucide-react";
+import { Send, Camera, Sparkles, Lightbulb, Atom, Globe, TreePine, Palette, Calculator, Mic, Volume2, Pause, Play, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ChatMessage from "@/components/ChatMessage";
@@ -9,6 +9,7 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  image?: string; // Added to store the base64 image string
   timestamp: string;
 }
 
@@ -105,35 +106,51 @@ const KidChat = () => {
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isTyping) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: messageText,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
+
     try {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: messageText, age: childAge }),
       });
+      
       const data = await res.json();
+      
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: data.response,
+        // If your backend sends the base64 string in data.image, we attach it here
+        image: data.image ? `data:image/png;base64,${data.image}` : undefined,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
+
       setMessages((prev) => [...prev, botMessage]);
+      
+      // Speak the text response (unless it's just an error message)
       speak(data.response);
     } catch (err) {
       speak("Oops! I couldn't reach my brain.");
     } finally {
       setIsTyping(false);
     }
+  };
+
+  // Helper to trigger image mode
+  const handleImagine = () => {
+    setInput("/imagine ");
+    inputRef.current?.focus();
   };
 
   return (
@@ -167,7 +184,6 @@ const KidChat = () => {
               <h2 className="text-2xl font-bold text-foreground mb-2">Hi! I'm KidZie!</h2>
               <p className="text-muted-foreground mb-8">Pick a question below or ask your own!</p>
               
-              {/* 3x2 Grid Layout for Suggestions */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl px-2">
                 {topicSuggestions.map((topic, index) => (
                   <button
@@ -187,6 +203,17 @@ const KidChat = () => {
             <div key={msg.id} className="flex flex-col gap-2">
               <div className="relative inline-block max-w-[85%]">
                 <ChatMessage role={msg.role} content={msg.content} timestamp={msg.timestamp} />
+                
+                {/* NEW: Display Generated Image */}
+                {msg.image && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2 rounded-2xl overflow-hidden border-4 border-white shadow-xl max-w-sm"
+                  >
+                    <img src={msg.image} alt="Generated Art" className="w-full h-auto object-cover" />
+                  </motion.div>
+                )}
                 
                 {msg.role === "assistant" && (
                   <div className="flex gap-2 mt-2 ml-2">
@@ -222,8 +249,15 @@ const KidChat = () => {
         {/* Fixed Input Bar */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
           <div className="max-w-3xl mx-auto flex items-center gap-2 bg-card rounded-full shadow-2xl px-4 py-3 border border-border">
-            <Button size="icon" variant="ghost" className="rounded-full text-muted-foreground hover:text-kidzie-purple">
-              <Camera className="w-5 h-5" />
+            {/* Image Generation Trigger Button */}
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={handleImagine}
+              className="rounded-full text-muted-foreground hover:text-kidzie-purple hover:bg-purple-50"
+              title="Magic Drawing Mode"
+            >
+              <Wand2 className="w-5 h-5 text-kidzie-purple" />
             </Button>
 
             <button
@@ -246,7 +280,7 @@ const KidChat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask me anything! 🌟"
+              placeholder="Ask me anything or use /imagine to draw! 🌟"
               className="flex-1 bg-transparent border-none outline-none text-base px-2"
             />
 
