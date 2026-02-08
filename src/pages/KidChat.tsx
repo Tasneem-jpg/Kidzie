@@ -346,7 +346,7 @@ const KidChat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask me anything or use /imagine to draw! 🌟"
+              placeholder="Ask me anything or use /imagine to draw!"
               className="flex-1 bg-transparent border-none outline-none text-base px-2"
             />
 

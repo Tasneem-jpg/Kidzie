@@ -96,7 +96,7 @@ const Index = () => {
                   transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
                   className="inline-block"
                 >
-                  👋
+                  
                 </motion.span>
               </h1>
 
@@ -115,16 +115,7 @@ const Index = () => {
                     Start Learning!
                   </Button>
                 </Link>
-                <Link to="/dashboard">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-base px-8 py-6 rounded-full font-bold border-2 hover:bg-muted"
-                  >
-                    <BookOpen className="w-5 h-5 mr-2" />
-                    I'm a Parent
-                  </Button>
-                </Link>
+                
               </div>
             </motion.div>
 
@@ -140,14 +131,6 @@ const Index = () => {
                   alt="Colorful learning elements — books, planets, science icons"
                   className="w-full rounded-3xl shadow-elevated"
                 />
-                {/* Floating KidZie avatar */}
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -bottom-8 -left-4 w-24 h-24 rounded-2xl overflow-hidden shadow-elevated border-4 border-card"
-                >
-                  <img src={kidzieAvatar} alt="KidZie mascot" className="w-full h-full object-cover" />
-                </motion.div>
               </div>
             </motion.div>
           </div>
@@ -193,7 +176,7 @@ const Index = () => {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-card/5 rounded-full translate-y-1/2 -translate-x-1/2" />
 
             <h2 className="text-3xl lg:text-4xl font-display font-bold text-primary-foreground mb-4 relative z-10">
-              Ready to Start Learning? 🚀
+              Ready to Start Learning? 
             </h2>
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto relative z-10">
               Join thousands of kids who are having fun while learning with KidZie!
@@ -215,7 +198,7 @@ const Index = () => {
       <footer className="py-8 border-t border-border">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Built with ❤️ for Mac-a-Thon 2026 · KidZie — Making learning fun for every kid
+            Built by Sama, Tasneem and Zain for Mac-a-Thon 2026 · KidZie 
           </p>
         </div>
       </footer>
