@@ -96,7 +96,7 @@ const Index = () => {
                   transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
                   className="inline-block"
                 >
-                  👋
+                  
                 </motion.span>
               </h1>
 
@@ -193,7 +193,7 @@ const Index = () => {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-card/5 rounded-full translate-y-1/2 -translate-x-1/2" />
 
             <h2 className="text-3xl lg:text-4xl font-display font-bold text-primary-foreground mb-4 relative z-10">
-              Ready to Start Learning? 🚀
+              Ready to Start Learning? 
             </h2>
             <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto relative z-10">
               Join thousands of kids who are having fun while learning with KidZie!
@@ -215,7 +215,7 @@ const Index = () => {
       <footer className="py-8 border-t border-border">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Built with ❤️ for Mac-a-Thon 2026 · KidZie — Making learning fun for every kid
+            Built by Sama, Tasneem and Zain for Mac-a-Thon 2026 · KidZie 
           </p>
         </div>
       </footer>
