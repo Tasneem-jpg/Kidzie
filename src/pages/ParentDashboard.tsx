@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { db } from "@/firebaseConfig"; // adjust the path if needed
+import { useEffect, useState } from "react";
+// import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -13,21 +16,23 @@ import {
   Microscope,
   Languages,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 import Header from "@/components/Header";
 import TopicBadge from "@/components/TopicBadge";
 
+
 // Mock data
-const activityLogs = [
-  { id: 1, query: "Why is the sky blue?", category: "Physics", timestamp: "Today, 3:42 PM", ageAtTime: 8 },
-  { id: 2, query: "How do volcanoes erupt?", category: "Earth Science", timestamp: "Today, 3:15 PM", ageAtTime: 8 },
-  { id: 3, query: "What are dinosaurs?", category: "Biology", timestamp: "Today, 2:50 PM", ageAtTime: 8 },
-  { id: 4, query: "How does a rainbow form?", category: "Physics", timestamp: "Yesterday, 5:20 PM", ageAtTime: 8 },
-  { id: 5, query: "Why do we need to sleep?", category: "Biology", timestamp: "Yesterday, 4:00 PM", ageAtTime: 8 },
-  { id: 6, query: "How do airplanes fly?", category: "Engineering", timestamp: "2 days ago", ageAtTime: 8 },
-  { id: 7, query: "What is photosynthesis?", category: "Biology", timestamp: "2 days ago", ageAtTime: 8 },
-  { id: 8, query: "Who was Cleopatra?", category: "History", timestamp: "3 days ago", ageAtTime: 8 },
-];
+
 
 const topicData = [
   { name: "Physics", value: 35, color: "hsl(175, 75%, 38%)" },
@@ -81,6 +86,32 @@ const severityColors = {
 
 const ParentDashboard = () => {
   const [selectedLang, setSelectedLang] = useState("en");
+  const [activityLogs, setActivityLogs] = useState([]);
+  const childId = "child_1"; // make dynamic later
+
+  useEffect(() => {
+    const fetchActivityLogs = async () => {
+      try {
+        const q = query(
+          collection(db, "activityLogs"),
+          where("childId", "==", childId),
+          orderBy("timestamp", "desc"),
+        );
+        const snapshot = await getDocs(q);
+        const logs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setActivityLogs(logs);
+      } catch (err) {
+        console.error("Error fetching activity logs:", err);
+      }
+    };
+
+    fetchActivityLogs();
+  }, []);
+
+  
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,7 +128,9 @@ const ParentDashboard = () => {
             <h1 className="text-3xl font-display font-bold">
               Parent <span className="text-gradient-hero">Dashboard</span>
             </h1>
-            <p className="text-muted-foreground mt-1">Track your child's learning journey</p>
+            <p className="text-muted-foreground mt-1">
+              Track your child's learning journey
+            </p>
           </div>
 
           {/* Language selector */}
@@ -120,10 +153,30 @@ const ParentDashboard = () => {
         {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Questions Asked", value: "47", icon: BookOpen, color: "kidzie-teal" },
-            { label: "Topics Explored", value: "12", icon: TrendingUp, color: "kidzie-coral" },
-            { label: "Weak Points", value: "3", icon: AlertTriangle, color: "kidzie-yellow" },
-            { label: "Time Learning", value: "4.2h", icon: Clock, color: "kidzie-purple" },
+            {
+              label: "Questions Asked",
+              value: "47",
+              icon: BookOpen,
+              color: "kidzie-teal",
+            },
+            {
+              label: "Topics Explored",
+              value: "12",
+              icon: TrendingUp,
+              color: "kidzie-coral",
+            },
+            {
+              label: "Weak Points",
+              value: "3",
+              icon: AlertTriangle,
+              color: "kidzie-yellow",
+            },
+            {
+              label: "Time Learning",
+              value: "4.2h",
+              icon: Clock,
+              color: "kidzie-purple",
+            },
           ].map((stat, i) => {
             const Icon = stat.icon;
             return (
@@ -134,11 +187,15 @@ const ParentDashboard = () => {
                 transition={{ delay: i * 0.1 }}
                 className="bg-card rounded-2xl p-5 shadow-card"
               >
-                <div className={`w-10 h-10 rounded-xl bg-${stat.color}/10 flex items-center justify-center mb-3`}>
+                <div
+                  className={`w-10 h-10 rounded-xl bg-${stat.color}/10 flex items-center justify-center mb-3`}
+                >
                   <Icon className={`w-5 h-5 text-${stat.color}`} />
                 </div>
                 <p className="text-2xl font-display font-bold">{stat.value}</p>
-                <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  {stat.label}
+                </p>
               </motion.div>
             );
           })}
@@ -166,15 +223,21 @@ const ParentDashboard = () => {
                   className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {categoryIcons[log.category] || <BookOpen className="w-4 h-4" />}
+                    {categoryIcons[log.category] || (
+                      <BookOpen className="w-4 h-4" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{log.query}</p>
+                    <p className="text-sm font-semibold truncate">
+                      {log.query}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {log.category}
+                        {log.category || "Uncategorized"}
                       </span>
-                      <span className="text-xs text-muted-foreground">{log.timestamp}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {log.timestamp}
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -250,7 +313,13 @@ const ParentDashboard = () => {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyActivity}>
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={12} fontFamily="Nunito" />
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    fontSize={12}
+                    fontFamily="Nunito"
+                  />
                   <YAxis hide />
                   <Tooltip
                     contentStyle={{
@@ -261,7 +330,11 @@ const ParentDashboard = () => {
                       fontFamily: "Nunito",
                     }}
                   />
-                  <Bar dataKey="questions" fill="hsl(175, 75%, 38%)" radius={[8, 8, 0, 0]} />
+                  <Bar
+                    dataKey="questions"
+                    fill="hsl(175, 75%, 38%)"
+                    radius={[8, 8, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -289,8 +362,12 @@ const ParentDashboard = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-sm text-foreground">{point.topic}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{point.category}</p>
+                      <p className="font-semibold text-sm text-foreground">
+                        {point.topic}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {point.category}
+                      </p>
                     </div>
                     <span className="text-xs font-bold uppercase px-2 py-1 rounded-full bg-card/50">
                       {point.severity}
@@ -300,7 +377,8 @@ const ParentDashboard = () => {
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-4 text-center">
-              💡 Tip: Encourage your child to ask more questions about these topics!
+              💡 Tip: Encourage your child to ask more questions about these
+              topics!
             </p>
           </motion.div>
         </div>
@@ -308,5 +386,6 @@ const ParentDashboard = () => {
     </div>
   );
 };
+
 
 export default ParentDashboard;

@@ -1,6 +1,23 @@
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "@/firebaseConfig"; // make sure the path is correct
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Camera, Sparkles, Lightbulb, Atom, Globe, TreePine, Palette, Calculator, Mic, Volume2, Pause, Play, Wand2 } from "lucide-react";
+import {
+  Send,
+  Camera,
+  Sparkles,
+  Lightbulb,
+  Atom,
+  Globe,
+  TreePine,
+  Palette,
+  Calculator,
+  Mic,
+  Volume2,
+  Pause,
+  Play,
+  Wand2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ChatMessage from "@/components/ChatMessage";
@@ -12,15 +29,6 @@ interface Message {
   image?: string; // Added to store the base64 image string
   timestamp: string;
 }
-
-const topicSuggestions = [
-  { label: "Why is the sky blue?", icon: Lightbulb, color: "bg-kidzie-blue/10 text-kidzie-blue hover:bg-kidzie-blue/20 border-kidzie-blue/20" },
-  { label: "How do volcanoes work?", icon: Atom, color: "bg-kidzie-coral/10 text-kidzie-coral hover:bg-kidzie-coral/20 border-kidzie-coral/20" },
-  { label: "Tell me about dinosaurs!", icon: TreePine, color: "bg-kidzie-green/10 text-kidzie-green hover:bg-kidzie-green/20 border-kidzie-green/20" },
-  { label: "How does the internet work?", icon: Globe, color: "bg-kidzie-purple/10 text-kidzie-purple hover:bg-kidzie-purple/20 border-kidzie-purple/20" },
-  { label: "What is a rainbow?", icon: Palette, color: "bg-kidzie-pink/10 text-kidzie-pink hover:bg-kidzie-pink/20 border-kidzie-pink/20" },
-  { label: "Why is math important?", icon: Calculator, color: "bg-kidzie-yellow/10 text-kidzie-yellow hover:bg-kidzie-yellow/20 border-kidzie-yellow/20" },
-];
 
 const API_URL = "http://localhost:8000/chat";
 
@@ -37,18 +45,23 @@ const KidChat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [childAge, setChildAge] = useState(8);
   const [isListening, setIsListening] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [selectedVoice, setSelectedVoice] =
+    useState<SpeechSynthesisVoice | null>(null);
   const [isPaused, setIsPaused] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
   const updateVoices = useCallback(() => {
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Premium")) 
-                         || voices.find(v => v.lang.startsWith("en")) 
-                         || voices[0];
+    const preferredVoice =
+      voices.find(
+        (v) =>
+          v.name.includes("Google US English") || v.name.includes("Premium"),
+      ) ||
+      voices.find((v) => v.lang.startsWith("en")) ||
+      voices[0];
     setSelectedVoice(preferredVoice);
   }, []);
 
@@ -62,7 +75,8 @@ const KidChat = () => {
   }, [messages]);
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -82,7 +96,7 @@ const KidChat = () => {
     setIsPaused(false);
     const utterance = new SpeechSynthesisUtterance(text);
     if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = 1.0; 
+    utterance.rate = 1.0;
     utterance.pitch = 1.15;
     window.speechSynthesis.speak(utterance);
   };
@@ -111,12 +125,27 @@ const KidChat = () => {
       id: Date.now().toString(),
       role: "user",
       content: messageText,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
+
+    // Save question to Firebase
+    try {
+      await addDoc(collection(db, "activityLogs"), {
+        query: messageText,
+        timestamp: new Date().toISOString(),
+        ageAtTime: childAge,
+        childId: "child_1", // later you can make this dynamic
+      });
+    } catch (err) {
+      console.error("Error saving to Firebase:", err);
+    }
 
     try {
       const res = await fetch(API_URL, {
@@ -124,20 +153,23 @@ const KidChat = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: messageText, age: childAge }),
       });
-      
+
       const data = await res.json();
-      
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: data.response,
         // If your backend sends the base64 string in data.image, we attach it here
         image: data.image ? `data:image/png;base64,${data.image}` : undefined,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
 
       setMessages((prev) => [...prev, botMessage]);
-      
+
       // Speak the text response (unless it's just an error message)
       speak(data.response);
     } catch (err) {
@@ -145,7 +177,7 @@ const KidChat = () => {
     } finally {
       setIsTyping(false);
     }
-  };
+  };;
 
   // Helper to trigger image mode
   const handleImagine = () => {
@@ -160,14 +192,18 @@ const KidChat = () => {
       <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full pb-32">
         {/* Age selector */}
         <div className="px-4 py-3 flex items-center justify-center gap-3">
-          <span className="text-sm font-semibold text-muted-foreground">I am</span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            I am
+          </span>
           <div className="flex items-center gap-1">
             {[6, 7, 8, 9, 10, 11, 12].map((age) => (
               <button
                 key={age}
                 onClick={() => setChildAge(age)}
                 className={`w-9 h-9 rounded-full text-sm font-bold transition-all duration-200 ${
-                  childAge === age ? "gradient-hero text-primary-foreground shadow-glow-teal scale-110" : "bg-muted"
+                  childAge === age
+                    ? "gradient-hero text-primary-foreground shadow-glow-teal scale-110"
+                    : "bg-muted"
                 }`}
               >
                 {age}
@@ -181,20 +217,26 @@ const KidChat = () => {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Sparkles className="w-12 h-12 text-kidzie-yellow mb-4 animate-bounce" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">Hi! I'm KidZie!</h2>
-              <p className="text-muted-foreground mb-8">Pick a question below or ask your own!</p>
-              
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Hi! I'm KidZie!
+              </h2>
+              <p className="text-muted-foreground mb-8">
+                Pick a question below or ask your own!
+              </p>
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl px-2">
-                {topicSuggestions.map((topic, index) => (
+                {/* {topicSuggestions.map((topic, index) => (
                   <button
                     key={index}
                     onClick={() => handleSend(topic.label)}
                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-sm font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm ${topic.color}`}
                   >
                     <topic.icon className="w-6 h-6" />
-                    <span className="text-center leading-tight">{topic.label}</span>
+                    <span className="text-center leading-tight">
+                      {topic.label}
+                    </span>
                   </button>
-                ))}
+                ))} */}
               </div>
             </div>
           )}
@@ -202,19 +244,27 @@ const KidChat = () => {
           {messages.map((msg) => (
             <div key={msg.id} className="flex flex-col gap-2">
               <div className="relative inline-block max-w-[85%]">
-                <ChatMessage role={msg.role} content={msg.content} timestamp={msg.timestamp} />
-                
+                <ChatMessage
+                  role={msg.role}
+                  content={msg.content}
+                  timestamp={msg.timestamp}
+                />
+
                 {/* NEW: Display Generated Image */}
                 {msg.image && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-2 rounded-2xl overflow-hidden border-4 border-white shadow-xl max-w-sm"
                   >
-                    <img src={msg.image} alt="Generated Art" className="w-full h-auto object-cover" />
+                    <img
+                      src={msg.image}
+                      alt="Generated Art"
+                      className="w-full h-auto object-cover"
+                    />
                   </motion.div>
                 )}
-                
+
                 {msg.role === "assistant" && (
                   <div className="flex gap-2 mt-2 ml-2">
                     <button
@@ -227,7 +277,15 @@ const KidChat = () => {
                       onClick={togglePause}
                       className="flex items-center gap-1 px-3 py-1 rounded-full bg-kidzie-purple/10 text-kidzie-purple hover:bg-kidzie-purple/20 text-xs font-bold border border-kidzie-purple/20 transition-colors"
                     >
-                      {isPaused ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Pause</>}
+                      {isPaused ? (
+                        <>
+                          <Play className="w-3 h-3" /> Resume
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-3 h-3" /> Pause
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
@@ -237,9 +295,15 @@ const KidChat = () => {
 
           <AnimatePresence>
             {isTyping && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center gap-3"
+              >
                 <Sparkles className="w-6 h-6 text-kidzie-teal animate-pulse" />
-                <span className="text-sm text-muted-foreground font-medium">KidZie is thinking...</span>
+                <span className="text-sm text-muted-foreground font-medium">
+                  KidZie is thinking...
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -250,9 +314,9 @@ const KidChat = () => {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-transparent">
           <div className="max-w-3xl mx-auto flex items-center gap-2 bg-card rounded-full shadow-2xl px-4 py-3 border border-border">
             {/* Image Generation Trigger Button */}
-            <Button 
-              size="icon" 
-              variant="ghost" 
+            <Button
+              size="icon"
+              variant="ghost"
               onClick={handleImagine}
               className="rounded-full text-muted-foreground hover:text-kidzie-purple hover:bg-purple-50"
               title="Magic Drawing Mode"
@@ -263,12 +327,14 @@ const KidChat = () => {
             <button
               onClick={startListening}
               className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 shadow-lg ${
-                isListening 
-                ? "bg-red-500 scale-110 animate-pulse shadow-red-200" 
-                : "bg-gradient-to-br from-kidzie-teal to-kidzie-blue hover:shadow-glow-teal"
+                isListening
+                  ? "bg-red-500 scale-110 animate-pulse shadow-red-200"
+                  : "bg-gradient-to-br from-kidzie-teal to-kidzie-blue hover:shadow-glow-teal"
               }`}
             >
-              <Mic className={`w-5 h-5 ${isListening ? "text-white" : "text-primary-foreground"}`} />
+              <Mic
+                className={`w-5 h-5 ${isListening ? "text-white" : "text-primary-foreground"}`}
+              />
               {isListening && (
                 <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-25"></span>
               )}
