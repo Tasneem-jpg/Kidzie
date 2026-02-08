@@ -12,35 +12,60 @@ import { useState, useEffect, useRef } from "react";
 import { auth } from "@/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
-const navItems = [
-  { to: "/", label: "Home", icon: Sparkles },
-  { to: "/chat", label: "Ask KidZie", icon: MessageCircle },
-  { to: "/dashboard", label: "Parent Dashboard", icon: LayoutDashboard },
-  { to: "/schedule", label: "Schedule", icon: Calendar },
-];
-
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<"child" | "parent" | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Read the role we saved during Sign In
+        const savedRole = localStorage.getItem("userRole") as "child" | "parent" | null;
+        setRole(savedRole);
+      } else {
+        setRole(null);
+      }
     });
+
     return () => unsubscribe();
   }, []);
 
-  // Close menu if clicking outside
+  // Logical check for navigation links
+  const getNavLinks = () => {
+    if (!user) {
+      return [{ to: "/", label: "Home", icon: Sparkles }];
+    }
+
+    if (role === "parent") {
+      return [
+        { to: "/dashboard", label: "Progress", icon: LayoutDashboard },
+        { to: "/schedule", label: "Schedule", icon: Calendar },
+      ];
+    }
+
+    if (role === "child") {
+      return [
+        { to: "/chat", label: "Ask KidZie", icon: MessageCircle },
+        { to: "/schedule", label: "Schedule", icon: Calendar },
+      ];
+    }
+
+    return [];
+  };
+
+  const navLinks = getNavLinks();
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -48,6 +73,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      localStorage.removeItem("userRole"); // Clear role on logout
       setMenuOpen(false);
       navigate("/");
     } catch (err) {
@@ -63,14 +89,14 @@ const Header = () => {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src={kidzieAvatar} alt="KidZie mascot" className="w-10 h-10 rounded-full" />
+          <img src={kidzieAvatar} alt="KidZie" className="w-10 h-10 rounded-full" />
           <span className="text-2xl font-display font-bold text-gradient-hero">
             KidZie
           </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => {
+          {navLinks.map((item) => {
             const isActive = location.pathname === item.to;
             const Icon = item.icon;
 
@@ -99,26 +125,30 @@ const Header = () => {
             );
           })}
 
-          {/* Login / User Dropdown */}
-          <div ref={menuRef} className="relative">
+          <div ref={menuRef} className="relative ml-2">
             {user ? (
               <>
                 <button
                   onClick={() => setMenuOpen((prev) => !prev)}
-                  className="px-4 py-2 rounded-full text-sm font-semibold hover:bg-muted transition"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold hover:bg-muted transition"
                 >
-                  Hi {user.displayName || "User"}!
+                  Hi {user.displayName?.split(" ")[0] || "User"}!
+                  {role && (
+                    <span className="text-[10px] uppercase px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">
+                      {role}
+                    </span>
+                  )}
                 </button>
 
                 {menuOpen && (
                   <motion.div
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute right-0 mt-2 w-32 bg-card border border-border rounded-xl shadow-card overflow-hidden"
+                    className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-xl shadow-xl overflow-hidden"
                   >
                     <button
                       onClick={handleLogout}
-                      className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                      className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
                     >
                       Log Out
                     </button>

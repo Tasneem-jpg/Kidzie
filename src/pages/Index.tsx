@@ -115,16 +115,7 @@ const Index = () => {
                     Start Learning!
                   </Button>
                 </Link>
-                <Link to="/dashboard">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-base px-8 py-6 rounded-full font-bold border-2 hover:bg-muted"
-                  >
-                    <BookOpen className="w-5 h-5 mr-2" />
-                    I'm a Parent
-                  </Button>
-                </Link>
+                
               </div>
             </motion.div>
 
